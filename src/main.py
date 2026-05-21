@@ -24,5 +24,6 @@ def create_app() -> FastAPI:
 
     return app
 
+
 # Główna instancja aplikacji wywoływana przez serwer Uvicorn
 app = create_app()

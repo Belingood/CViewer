@@ -1,7 +1,9 @@
 import io
-from PIL import Image
-from fastapi import APIRouter, UploadFile, File, HTTPException, Depends
+
+from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
 from fastapi.responses import JSONResponse
+from PIL import Image
+
 from src.schemas.cv import CVUploadResponse
 from src.services.ocr_service import OCRService
 
@@ -28,8 +30,7 @@ async def health_check() -> JSONResponse:
 
 @api_router.post("/api/v1/cv/upload/", response_model=CVUploadResponse, tags=["Dokumenty CV"])
 async def upload_cv(
-        file: UploadFile = File(...),
-        ocr_service: OCRService = Depends(get_ocr_service)
+    file: UploadFile = File(...), ocr_service: OCRService = Depends(get_ocr_service)
 ) -> CVUploadResponse:
     """
     Endpoint do przesyłania i analizy dokumentów CV (obsługuje formaty obrazów: PNG, JPG).
@@ -38,7 +39,7 @@ async def upload_cv(
     if file.content_type not in ["image/jpeg", "image/png"]:
         raise HTTPException(
             status_code=400,
-            detail="Nieobsługiwany format pliku. Proszę przesłać obraz w formacie JPG lub PNG."
+            detail="Nieobsługiwany format pliku. Proszę przesłać obraz w formacie JPG lub PNG.",
         )
 
     try:
@@ -52,7 +53,7 @@ async def upload_cv(
         return CVUploadResponse(
             filename=file.filename or "nieznany_plik",
             status="processed",
-            extracted_data=extracted_data
+            extracted_data=extracted_data,
         )
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Błąd podczas przetwarzania obrazu: {str(e)}")
