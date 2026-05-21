@@ -12,6 +12,12 @@ dependencies = [
     "fastapi",
     "uvicorn",
     "pydantic",
+    "pytesseract",
+    "opencv-python-headless",
+    "numpy",
+    "Pillow",
+    "pdf2image",
+    "python-multipart",
 ]
 
 [project.optional-dependencies]
@@ -29,9 +35,9 @@ target-version = "py314"
 
 [tool.ruff.lint]
 select = [
-    "E",  # błędy pycodestyle
-    "F",  # błędy pyflakes
-    "I",  # sortowanie importów (isort)
+    "E", # błędy pycodestyle
+    "F", # błędy pyflakes
+    "I", # sortowanie importów (isort)
     "UP", # reguły aktualizacji Pythona (pyupgrade)
 ]
 

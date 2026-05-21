@@ -16,6 +16,7 @@ COPY requirements.txt .
 # oraz zależności z pliku requirements.txt
 RUN apt-get update && apt-get install -y --no-install-recommends \
     tesseract-ocr \
+    tesseract-ocr-pol \
     libtesseract-dev \
     poppler-utils \
     libgl1 \
