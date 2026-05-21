@@ -3,7 +3,7 @@ from fastapi.responses import JSONResponse
 
 # Inicjalizacja głównej instancji aplikacji FastAPI
 app = FastAPI(
-    title="System Ekstrakcji CV",
+    title="CViewer - System Ekstrakcji CV",
     description="API do przetwarzania i analizy dokumentów CV przy użyciu OCR.",
     version="0.1.0",
 )

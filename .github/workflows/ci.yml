@@ -1,4 +1,4 @@
-name: CI (Ciągła Integracja) - CV Extractor
+name: CI (Ciągła Integracja) - CViewer
 
 # Uruchomienie akcji przy każdym wypchnięciu kodu do gałęzi main oraz przy Pull Requestach
 on:
