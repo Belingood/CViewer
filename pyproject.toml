@@ -1,0 +1,44 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "CViewer-backend"
+version = "0.1.0"
+description = "System ekstrakcji informacji z dokumentów CV (OCR + NLP)"
+readme = "README.md"
+requires-python = ">=3.14"
+dependencies = [
+    "fastapi",
+    "uvicorn",
+    "pydantic",
+]
+
+[project.optional-dependencies]
+dev = [
+    "ruff",
+    "mypy",
+    "pytest",
+    "httpx"
+]
+
+[tool.ruff]
+# Konfiguracja lintera Ruff
+line-length = 100
+target-version = "py314"
+
+[tool.ruff.lint]
+select = [
+    "E",  # błędy pycodestyle
+    "F",  # błędy pyflakes
+    "I",  # sortowanie importów (isort)
+    "UP", # reguły aktualizacji Pythona (pyupgrade)
+]
+
+[tool.mypy]
+# Konfiguracja sprawdzania typów Mypy
+python_version = "3.14"
+strict = true
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true

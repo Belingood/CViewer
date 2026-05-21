@@ -1,0 +1,40 @@
+name: CI (Ciągła Integracja) - CV Extractor
+
+# Uruchomienie akcji przy każdym wypchnięciu kodu do gałęzi main oraz przy Pull Requestach
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Pobranie repozytorium (Checkout)
+      uses: actions/checkout@v4
+
+    - name: Konfiguracja środowiska Python 3.14
+      uses: actions/setup-python@v5
+      with:
+        python-version: "3.14"
+        cache: 'pip' # Przyspiesza działanie CI dzięki buforowaniu pakietów
+
+    - name: Instalacja zależności projektu
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install ruff mypy pytest httpx
+
+    - name: Sprawdzanie jakości kodu (Linter Ruff)
+      run: |
+        ruff check .
+
+    - name: Statyczna analiza typów (Mypy)
+      run: |
+        mypy src/ tests/
+
+    - name: Uruchomienie testów jednostkowych (Pytest)
+      run: |
+        pytest tests/

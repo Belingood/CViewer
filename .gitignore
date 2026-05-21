@@ -1,0 +1,26 @@
+# Środowisko wirtualne
+venv/
+env/
+
+# Pliki tymczasowe Pythona
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+
+# Pliki konfiguracyjne IDE (PyCharm)
+.idea/
+
+# Narzędzia testowe i lintery
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+htmlcov/
+.coverage
+
+# Zmienne środowiskowe
+.env
+
+# Pliki przesłane przez użytkowników (CV)
+uploads/
