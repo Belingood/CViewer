@@ -1,0 +1,32 @@
+version: '3.8'
+
+services:
+  # Warstwa aplikacji (Backend)
+  api:
+    build: .
+    container_name: cviewer_api
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./src:/app/src  # Mapowanie katalogu (Hot-reload) pozwala na edycję kodu bez restartu kontenera
+    command: uvicorn src.main:app --host 0.0.0.0 --port 8000 --reload
+    depends_on:
+      - db
+
+  # Warstwa bazy danych (PostgreSQL)
+  db:
+    image: postgres:16
+    container_name: cviewer_db
+    restart: always
+    environment:
+      POSTGRES_USER: cviewer_user
+      POSTGRES_PASSWORD: cviewer_password
+      POSTGRES_DB: cviewer_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+# Definicja wolumenu dla trwałego przechowywania danych bazy
+volumes:
+  postgres_data:

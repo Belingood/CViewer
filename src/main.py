@@ -1,24 +1,26 @@
 from fastapi import FastAPI
-from fastapi.responses import JSONResponse
+from src.api.router import api_router
 
-# Inicjalizacja głównej instancji aplikacji FastAPI
-app = FastAPI(
-    title="CViewer - System Ekstrakcji CV",
-    description="API do przetwarzania i analizy dokumentów CV przy użyciu OCR.",
-    version="0.1.0",
-)
+def create_app() -> FastAPI:
+    """
+    Explicit Composition Root dla aplikacji CViewer.
+    W tym miejscu odbywa się inicjalizacja aplikacji, rejestracja routerów
+    oraz wstrzykiwanie zależności (Dependency Injection).
+    """
+    # 1. Tworzenie instancji aplikacji
+    app = FastAPI(
+        title="CViewer API",
+        description="System ekstrakcji informacji z dokumentów CV oparty na OCR i NLP.",
+        version="0.1.0",
+    )
 
-@app.get("/", tags=["Diagnostyka"])
-async def root() -> dict[str, str]:
-    """
-    Podstawowy punkt końcowy do sprawdzania, czy serwer działa (Healthcheck).
-    Zwraca prosty komunikat powitalny.
-    """
-    return {"message": "Serwer API Systemu Ekstrakcji CV działa poprawnie."}
+    # 2. Rejestracja endpointów (Routerów)
+    app.include_router(api_router)
 
-@app.get("/api/v1/health", tags=["Diagnostyka"])
-async def health_check() -> JSONResponse:
-    """
-    Endpoint diagnostyczny dla systemów monitorowania i CI/CD.
-    """
-    return JSONResponse(content={"status": "ok", "version": "0.1.0"})
+    # 3. W przyszłości: konfiguracja połączenia z bazą danych i wstrzykiwanie serwisów
+    # np. app.dependency_overrides[Database] = setup_database(...)
+
+    return app
+
+# Główna instancja aplikacji wywoływana przez serwer Uvicorn
+app = create_app()
