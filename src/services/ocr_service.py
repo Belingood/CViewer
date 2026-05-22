@@ -41,14 +41,14 @@ class OCRService:
 
         return processed_img
 
-    def _extract_email(self, text: str) -> Optional[str]:
+    def _extract_email(self, text: str) -> str | None:
         """
         Ekstrakcja adresu e-mail z uwzględnieniem spacji wstawianych przez OCR
         oraz typowych błędów (Q, © zamiast @).
         """
         # Dodajemy ' ?' (opcjonalna spacja) wokół symbolu małpy,
         # ponieważ Tesseract czasem rozdziela e-mail np.: "jan.kowalskiQ gmail.com"
-        email_pattern = r'[a-zA-Z0-9_.+-]+ ?(?:@|Q|©) ?[a-zA-Z0-9-]+\.(?:com|pl|net|org|edu|eu|io)'
+        email_pattern = r"[a-zA-Z0-9_.+-]+ ?(?:@|Q|©) ?[a-zA-Z0-9-]+\.(?:com|pl|net|org|edu|eu|io)"
 
         match = re.search(email_pattern, text)
         if match:
@@ -58,22 +58,43 @@ class OCRService:
             email = email.replace(" ", "")
 
             # 2. Automatyczna naprawa odczytanego znaku na poprawne '@'
-            if '@' not in email:
-                email = re.sub(r'(?:Q|©)', '@', email, count=1)
+            if "@" not in email:
+                email = re.sub(r"(?:Q|©)", "@", email, count=1)
 
             return email
         return None
 
     def _extract_phone(self, text: str) -> str | None:
         """
-        Ekstrakcja numeru telefonu (obsługuje formaty polskie 9-cyfrowe
-        oraz międzynarodowe/amerykańskie 10-cyfrowe).
+        Ekstrakcja numeru telefonu z uwzględnieniem kodów krajów (np. +48, +44),
+        numerów kierunkowych w nawiasach (np. (0)) oraz różnych separatorów.
         """
-        # Wzorzec dopasowujący numery typu: 123 456 789,
-        # +48 123-456-789, 508-762-8478, (508) 762 8478
-        phone_pattern = r"(?:\+?\d{1,3})?[\s-]?\(?\d{3}\)?[\s-]?\d{3}[\s-]?\d{3,4}"
-        match = re.search(phone_pattern, text)
-        return match.group(0).strip() if match else None
+        # Wyjaśnienie wzorca:
+        # (?:\+\d{1,3}[\s-]?)?       -> Opcjonalny kod kraju, np. "+48 ", "+44 "
+        # (?:\(\d{1,3}\)[\s-]?)?     -> Opcjonalny kierunkowy w nawiasie, np. "(0) "
+        # (?:\d{2,4}[\s-]?){2,4}\d{2,4} -> Bloki cyfr (od 2 do 4 w bloku),
+        # oddzielone spacją lub myślnikiem
+        phone_pattern = r"(?:\+\d{1,3}[\s-]?)?(?:\(\d{1,3}\)[\s-]?)?(?:\d{2,4}[\s-]?){2,4}\d{2,4}"
+
+        # Używamy finditer, aby przeanalizować wszystkie potencjalne dopasowania
+        matches = re.finditer(phone_pattern, text)
+
+        for match in matches:
+            phone_candidate = match.group(0).strip()
+
+            # Zliczamy same cyfry w dopasowanym ciągu, ignorując znaki specjalne
+            digits_only = re.sub(r"\D", "", phone_candidate)
+
+            # Prawdziwy numer telefonu musi mieć od 9 do 15 cyfr
+            if 9 <= len(digits_only) <= 15:
+                # Zabezpieczenie (Negative filter): odrzucamy ciągi, które wyglądają jak daty
+                # (np. "2015-08 - 2018-05"), które OCR może uznać za długi ciąg cyfr
+                if re.search(r"20[0-2]\d[\s-]*[0-1]?\d", phone_candidate):
+                    continue
+
+                return phone_candidate
+
+        return None
 
     def process_image(self, image: Image.Image) -> ExtractedCVData:
         """Główna metoda koordynująca ekstrakcję z pojedynczego obrazu."""

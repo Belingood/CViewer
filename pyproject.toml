@@ -28,7 +28,9 @@ dev = [
     "ruff",
     "mypy",
     "pytest",
-    "httpx"
+    "httpx",
+    "taskipy",
+    "pre-commit",
 ]
 
 [tool.ruff]
@@ -55,3 +57,12 @@ disallow_untyped_defs = true
 [[tool.mypy.overrides]]
 module = ["pytesseract"]
 ignore_missing_imports = true
+
+[tool.taskipy.tasks]
+# Definicje komend dla narzędzia taskipy
+format = "ruff format ."
+lint = "ruff check --fix ."
+typecheck = "mypy src/"
+test = "pytest"
+# Komenda 'check' uruchamia wszystkie powyższe zadania w łańcuchu
+check = "task format && task lint && task typecheck && task test"

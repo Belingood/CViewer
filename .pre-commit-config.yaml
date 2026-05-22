@@ -1,0 +1,34 @@
+# Konfiguracja narzędzia pre-commit
+# Uruchamia wybrane narzędzia automatycznie przed każdym wykonaniem 'git commit'
+
+repos:
+  - repo: local
+    hooks:
+      - id: ruff-format
+        name: Formatowanie kodu (Ruff)
+        entry: ruff format
+        language: system
+        types: [python]
+
+      - id: ruff-lint
+        name: Linter i analiza statyczna (Ruff)
+        entry: ruff check --fix
+        language: system
+        types: [python]
+
+      - id: mypy
+        name: Sprawdzanie typów (Mypy)
+        entry: mypy src/
+        language: system
+        types: [python]
+        # Uruchamia Mypy globalnie dla katalogu, a nie dla pojedynczych plików
+        pass_filenames: false
+
+      - id: pytest
+        name: Testy jednostkowe (Pytest)
+        entry: pytest
+        language: system
+        types: [python]
+        pass_filenames: false
+        # Wymusza uruchomienie testów nawet, jeśli nie zmieniono plików Python
+        always_run: true
