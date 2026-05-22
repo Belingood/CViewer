@@ -41,21 +41,26 @@ class OCRService:
 
         return processed_img
 
-    def _extract_email(self, text: str) -> str | None:
+    def _extract_email(self, text: str) -> Optional[str]:
         """
-        Ekstrakcja adresu e-mail z uwzględnieniem typowych błędów silnika OCR.
-        Tesseract często myli znak '@' z literą 'Q' lub symbolem '©'.
+        Ekstrakcja adresu e-mail z uwzględnieniem spacji wstawianych przez OCR
+        oraz typowych błędów (Q, © zamiast @).
         """
-        # Rozszerzony wzorzec: szuka @, ale dopuszcza też Q lub © w środku domeny.
-        # Ograniczamy końcówki do popularnych domen, aby uniknąć fałszywych dopasowań.
-        email_pattern = r"[a-zA-Z0-9_.+-]+(?:@|Q|©)[a-zA-Z0-9-]+\.(?:com|pl|net|org|edu|eu|io)"
+        # Dodajemy ' ?' (opcjonalna spacja) wokół symbolu małpy,
+        # ponieważ Tesseract czasem rozdziela e-mail np.: "jan.kowalskiQ gmail.com"
+        email_pattern = r'[a-zA-Z0-9_.+-]+ ?(?:@|Q|©) ?[a-zA-Z0-9-]+\.(?:com|pl|net|org|edu|eu|io)'
 
         match = re.search(email_pattern, text)
         if match:
             email = match.group(0)
-            # Automatyczna naprawa odczytanego znaku na poprawne '@'
-            if "@" not in email:
-                email = re.sub(r"(?:Q|©)", "@", email, count=1)
+
+            # 1. Usuwamy sztuczne spacje ze znalezionego adresu
+            email = email.replace(" ", "")
+
+            # 2. Automatyczna naprawa odczytanego znaku na poprawne '@'
+            if '@' not in email:
+                email = re.sub(r'(?:Q|©)', '@', email, count=1)
+
             return email
         return None
 

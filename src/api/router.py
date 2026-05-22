@@ -30,30 +30,31 @@ async def health_check() -> JSONResponse:
 
 @api_router.post("/api/v1/cv/upload/", response_model=CVUploadResponse, tags=["Dokumenty CV"])
 async def upload_cv(
-    file: UploadFile = File(...), ocr_service: OCRService = Depends(get_ocr_service)
+        file: UploadFile = File(...),
+        ocr_service: OCRService = Depends(get_ocr_service)
 ) -> CVUploadResponse:
     """
-    Endpoint do przesyłania i analizy dokumentów CV (obsługuje formaty obrazów: PNG, JPG).
+    Endpoint do przesyłania i analizy dokumentów CV (obsługuje formaty obrazów: PNG, JPG, WEBP).
     """
-    # Sprawdzenie typu pliku
-    if file.content_type not in ["image/jpeg", "image/png"]:
+    # Rozszerzona lista dozwolonych formatów o format WEBP
+    allowed_types = ["image/jpeg", "image/png", "image/webp"]
+
+    if file.content_type not in allowed_types:
         raise HTTPException(
             status_code=400,
-            detail="Nieobsługiwany format pliku. Proszę przesłać obraz w formacie JPG lub PNG.",
+            detail="Nieobsługiwany format pliku. Proszę przesłać obraz w formacie JPG, PNG lub WEBP."
         )
 
     try:
-        # Odczyt pliku do pamięci
         file_bytes = await file.read()
         image = Image.open(io.BytesIO(file_bytes))
 
-        # Przetwarzanie obrazu przez serwis OCR
         extracted_data = ocr_service.process_image(image)
 
         return CVUploadResponse(
             filename=file.filename or "nieznany_plik",
             status="processed",
-            extracted_data=extracted_data,
+            extracted_data=extracted_data
         )
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Błąd podczas przetwarzania obrazu: {str(e)}")
