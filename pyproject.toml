@@ -18,6 +18,9 @@ dependencies = [
     "Pillow",
     "pdf2image",
     "python-multipart",
+    "sqlalchemy>=2.0",
+    "asyncpg",
+    "greenlet"
 ]
 
 [project.optional-dependencies]
