@@ -3,7 +3,10 @@ import io
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
 from fastapi.responses import JSONResponse
 from PIL import Image
+from sqlalchemy.ext.asyncio import AsyncSession
 
+from src.db.crud import create_cv_record
+from src.db.database import get_db
 from src.schemas.cv import CVUploadResponse
 from src.services.ocr_service import OCRService
 
@@ -11,10 +14,6 @@ api_router = APIRouter()
 
 
 def get_ocr_service() -> OCRService:
-    """
-    Dostawca zależności (Dependency Provider) dla serwisu OCR.
-    Zgodnie ze wzorcem Explicit Composition Root.
-    """
     return OCRService()
 
 
@@ -30,14 +29,12 @@ async def health_check() -> JSONResponse:
 
 @api_router.post("/api/v1/cv/upload/", response_model=CVUploadResponse, tags=["Dokumenty CV"])
 async def upload_cv(
-    file: UploadFile = File(...), ocr_service: OCRService = Depends(get_ocr_service)
+    file: UploadFile = File(...),
+    ocr_service: OCRService = Depends(get_ocr_service),
+    db_session: AsyncSession = Depends(get_db),  # Wstrzykiwanie sesji bazy danych
 ) -> CVUploadResponse:
-    """
-    Endpoint do przesyłania i analizy dokumentów CV (obsługuje formaty obrazów: PNG, JPG, WEBP).
-    """
-    # Rozszerzona lista dozwolonych formatów o format WEBP
+    """Endpoint do przesyłania, analizy i zapisu dokumentów CV."""
     allowed_types = ["image/jpeg", "image/png", "image/webp"]
-
     if file.content_type not in allowed_types:
         raise HTTPException(
             status_code=400,
@@ -46,15 +43,24 @@ async def upload_cv(
         )
 
     try:
+        # 1. Odczyt i ekstrakcja (OCR + NLP)
         file_bytes = await file.read()
         image = Image.open(io.BytesIO(file_bytes))
-
         extracted_data = ocr_service.process_image(image)
 
-        return CVUploadResponse(
+        # 2. Zapis do bazy danych (PostgreSQL)
+        saved_doc = await create_cv_record(
+            session=db_session,
             filename=file.filename or "nieznany_plik",
-            status="processed",
+            extracted_data=extracted_data,
+        )
+
+        # 3. Zwrócenie odpowiedzi (zawierającej ID z bazy)
+        return CVUploadResponse(
+            id=saved_doc.id,
+            filename=saved_doc.filename,
+            status=saved_doc.status,
             extracted_data=extracted_data,
         )
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Błąd podczas przetwarzania obrazu: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Błąd przetwarzania: {str(e)}")
