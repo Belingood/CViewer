@@ -10,10 +10,11 @@ services:
     environment:
       - DB_HOST=db
     volumes:
-      - ./src:/app/src  # Mapowanie katalogu (Hot-reload) pozwala na edycję kodu bez restartu kontenera
+      - ./src:/app/src
     command: uvicorn src.main:app --host 0.0.0.0 --port 8000 --reload
     depends_on:
-      - db
+      db:
+        condition: service_healthy  # <--- Czeka na pozytywny wynik healthchecka z bazy
 
   # Warstwa bazy danych (PostgreSQL)
   db:
@@ -28,7 +29,11 @@ services:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    healthcheck: # <--- Narzędzie pingujące bazę danych
+      test: ["CMD-SHELL", "pg_isready -U cviewer_user -d cviewer_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
 
-# Definicja wolumenu dla trwałego przechowywania danych bazy
 volumes:
   postgres_data:

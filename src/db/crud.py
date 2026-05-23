@@ -25,7 +25,10 @@ async def create_cv_record(
 
     # 2. Tworzenie powiązanego rekordu kandydata
     new_candidate = Candidate(
-        document_id=new_doc.id, email=extracted_data.email, phone=extracted_data.phone
+        document_id=new_doc.id,
+        email=extracted_data.email,
+        phone=extracted_data.phone,
+        photo_path=extracted_data.photo_path,
     )
     session.add(new_candidate)
 

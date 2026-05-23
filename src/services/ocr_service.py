@@ -1,8 +1,11 @@
+import os
 import re
+import uuid
 
 import cv2
 import numpy as np
 import pytesseract
+from cv2 import data
 from PIL import Image
 
 from src.schemas.cv import ExtractedCVData
@@ -13,6 +16,16 @@ class OCRService:
     Serwis odpowiedzialny za przetwarzanie obrazów, ekstrakcję tekstu (OCR)
     oraz wyciąganie ustrukturyzowanych informacji (NLP/Regex).
     """
+
+    def __init__(self) -> None:
+        # Inicjalizacja katalogu na zdjęcia wycięte z CV
+        self.faces_dir = os.path.join("uploads", "faces")
+        os.makedirs(self.faces_dir, exist_ok=True)
+
+        # Wczytanie pretrenowanego modelu kaskad Haara (klasyczne widzenie komputerowe)
+        # Model ten jest zoptymalizowany pod kątem wykrywania twarzy zwróconych przodem
+        cascade_path = data.haarcascades + "haarcascade_frontalface_default.xml"
+        self.face_cascade = cv2.CascadeClassifier(cascade_path)
 
     def _preprocess_image(self, image: Image.Image) -> np.ndarray:
         """
@@ -96,18 +109,75 @@ class OCRService:
 
         return None
 
+    def _extract_face(self, open_cv_image: np.ndarray) -> str | None:
+        """
+        Wykrywa twarz na zdjęciu za pomocą algorytmu Viola-Jones (Kaskady Haara).
+        Jeśli twarz zostanie znaleziona, wycina ją i zapisuje na dysku.
+        Zwraca względną ścieżkę do pliku.
+        """
+        # Konwersja do skali szarości (wymagane przez kaskady Haara)
+        gray = cv2.cvtColor(open_cv_image, cv2.COLOR_BGR2GRAY)
+
+        # Detekcja twarzy
+        # scaleFactor=1.1 - kompensacja rozmiaru (skalowanie obrazu w poszukiwaniu twarzy)
+        # minNeighbors=5 - określa jakość detekcji (wyższa wartość = mniej fałszywych trafień)
+        # minSize=(50, 50) - ignorowanie bardzo małych obiektów (np. ikonek na CV)
+        faces = self.face_cascade.detectMultiScale(
+            gray, scaleFactor=1.1, minNeighbors=5, minSize=(50, 50)
+        )
+
+        # Jeśli nie wykryto twarzy, zwracamy None
+        if len(faces) == 0:
+            return None
+
+        # Zakładamy, że na CV jest tylko jedna twarz kandydata (bierzemy pierwszą znalezioną)
+        x, y, w, h = faces[0]
+
+        # Dodanie marginesu wokół twarzy (aby nie ucinać czoła czy brody)
+        margin = int(w * 0.2)
+        y1 = max(0, y - margin)
+        y2 = min(open_cv_image.shape[0], y + h + margin)
+        x1 = max(0, x - margin)
+        x2 = min(open_cv_image.shape[1], x + w + margin)
+
+        # Wycięcie twarzy z oryginalnego, kolorowego zdjęcia
+        cropped_face = open_cv_image[y1:y2, x1:x2]
+
+        # Wygenerowanie unikalnej nazwy pliku i zapis na dysku
+        filename = f"face_{uuid.uuid4().hex[:8]}.jpg"
+        filepath = os.path.join(self.faces_dir, filename)
+
+        cv2.imwrite(filepath, cropped_face)
+
+        # Zwracamy ścieżkę w formacie przyjaznym dla URL (np. "uploads/faces/face_123.jpg")
+        return filepath.replace("\\", "/")
+
     def process_image(self, image: Image.Image) -> ExtractedCVData:
         """Główna metoda koordynująca ekstrakcję z pojedynczego obrazu."""
+
+        # --- Zmiana: zachowujemy oryginalny obraz do wycięcia twarzy ---
+        image_rgb = image.convert("RGB")
+        original_cv_image = np.array(image_rgb)[:, :, ::-1].copy()
+
+        # 1. Przetwarzanie wstępne dla OCR (Computer Vision)
         processed_cv2_image = self._preprocess_image(image)
 
-        # Dodanie psm 6 (Page Segmentation Mode: Assume a single uniform block of text)
-        # Pomaga to Tesseractowi lepiej zachować układ i spacje
+        # 2. Detekcja i ekstrakcja twarzy kandydata
+        photo_path = self._extract_face(original_cv_image)
+
+        # 3. Ekstrakcja tekstu (OCR)
         custom_config = r"--oem 3 --psm 6"
         raw_text = pytesseract.image_to_string(
             processed_cv2_image, lang="pol+eng", config=custom_config
         )
 
+        # 4. Analiza NLP
         email = self._extract_email(raw_text)
         phone = self._extract_phone(raw_text)
 
-        return ExtractedCVData(email=email, phone=phone, raw_text=raw_text.strip())
+        return ExtractedCVData(
+            email=email,
+            phone=phone,
+            photo_path=photo_path,  # <--- Dodanie ścieżki do wyniku
+            raw_text=raw_text.strip(),
+        )

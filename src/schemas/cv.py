@@ -6,6 +6,7 @@ from pydantic import BaseModel, ConfigDict
 class ExtractedCVData(BaseModel):
     email: str | None = None
     phone: str | None = None
+    photo_path: str | None = None
     raw_text: str
 
 
@@ -40,6 +41,7 @@ class CandidateData(BaseModel):
     last_name: str | None = None
     email: str | None = None
     phone: str | None = None
+    photo_path: str | None = None
 
 
 class CVDetailResponse(BaseModel):

@@ -1,6 +1,8 @@
+import os
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
+from fastapi.staticfiles import StaticFiles
 
 from src.api.router import api_router
 from src.db.database import Base, engine
@@ -36,6 +38,12 @@ def create_app() -> FastAPI:
     )
 
     app.include_router(api_router)
+
+    # Utworzenie głównego katalogu na pliki, jeśli nie istnieje
+    os.makedirs("uploads", exist_ok=True)
+    # Udostępnianie katalogu 'uploads' jako plików statycznych pod adresem URL '/uploads'
+    app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
+
     return app
 
 

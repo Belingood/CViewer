@@ -43,6 +43,7 @@ class Candidate(Base):
     last_name: Mapped[str | None] = mapped_column(String, nullable=True)
     email: Mapped[str | None] = mapped_column(String, nullable=True)
     phone: Mapped[str | None] = mapped_column(String, nullable=True)
+    photo_path: Mapped[str | None] = mapped_column(String, nullable=True)
 
     # Przechowywanie dynamicznej listy w formacie JSONB
     skills: Mapped[dict[str, Any] | list[Any] | None] = mapped_column(JSONB, nullable=True)
