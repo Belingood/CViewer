@@ -1,13 +1,25 @@
 import io
 
-from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
+from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
 from fastapi.responses import JSONResponse
 from PIL import Image
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.db.crud import create_cv_record
+from src.db.crud import (
+    create_cv_record,
+    delete_cv_document,
+    get_all_cvs,
+    get_cv_by_id,
+    update_candidate_data,
+)
 from src.db.database import get_db
-from src.schemas.cv import CVUploadResponse
+from src.schemas.cv import (
+    CandidateData,
+    CandidateUpdateRequest,
+    CVDetailResponse,
+    CVListResponse,
+    CVUploadResponse,
+)
 from src.services.ocr_service import OCRService
 
 api_router = APIRouter()
@@ -64,3 +76,43 @@ async def upload_cv(
         )
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Błąd przetwarzania: {str(e)}")
+
+
+@api_router.get("/api/v1/cv/", response_model=list[CVListResponse], tags=["Dokumenty CV"])
+async def list_cvs(db_session: AsyncSession = Depends(get_db)) -> list[CVListResponse]:
+    """Zwraca listę wszystkich przesłanych dokumentów CV."""
+    documents = await get_all_cvs(db_session)
+    # Ręczna konwersja obiektów ORM na modele Pydantic dla zgodności z Mypy
+    return [CVListResponse.model_validate(doc) for doc in documents]
+
+
+@api_router.get("/api/v1/cv/{cv_id}", response_model=CVDetailResponse, tags=["Dokumenty CV"])
+async def get_cv(cv_id: int, db_session: AsyncSession = Depends(get_db)) -> CVDetailResponse:
+    """Zwraca szczegółowe informacje o wybranym dokumencie na podstawie jego ID."""
+    document = await get_cv_by_id(db_session, cv_id)
+    if not document:
+        raise HTTPException(status_code=404, detail="Dokument o podanym ID nie został znaleziony.")
+    return CVDetailResponse.model_validate(document)
+
+
+@api_router.patch("/api/v1/cv/{cv_id}/candidate", response_model=CandidateData, tags=["Kandydaci"])
+async def update_candidate(
+    cv_id: int, update_data: CandidateUpdateRequest, db_session: AsyncSession = Depends(get_db)
+) -> CandidateData:
+    """Pozwala na ręczną korektę danych kandydata wyciągniętych przez OCR."""
+    updated_candidate = await update_candidate_data(db_session, cv_id, update_data)
+    if not updated_candidate:
+        raise HTTPException(
+            status_code=404, detail="Nie znaleziono danych kandydata dla tego dokumentu."
+        )
+    return CandidateData.model_validate(updated_candidate)
+
+
+@api_router.delete(
+    "/api/v1/cv/{cv_id}", status_code=status.HTTP_204_NO_CONTENT, tags=["Dokumenty CV"]
+)
+async def delete_cv(cv_id: int, db_session: AsyncSession = Depends(get_db)) -> None:
+    """Trwale usuwa dokument oraz powiązane z nim dane kandydata z bazy danych."""
+    success = await delete_cv_document(db_session, cv_id)
+    if not success:
+        raise HTTPException(status_code=404, detail="Dokument o podanym ID nie istnieje.")
