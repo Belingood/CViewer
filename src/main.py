@@ -42,6 +42,8 @@ def create_app() -> FastAPI:
     origins = [
         "http://localhost:5173",
         "http://127.0.0.1:5173",
+        "http://localhost",  # dla frontendu serwowanego przez Nginx w Dockerze
+        "http://127.0.0.1",
     ]
 
     app.add_middleware(
