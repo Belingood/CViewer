@@ -2,6 +2,7 @@ import os
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
 from src.api.router import api_router
@@ -35,6 +36,20 @@ def create_app() -> FastAPI:
         description="System ekstrakcji informacji z dokumentów CV oparty na OCR i NLP.",
         version="0.1.0",
         lifespan=lifespan,  # Podpięcie zdarzeń cyklu życia
+    )
+
+    # Zezwalamy na żądania z lokalnego serwera deweloperskiego Vite (Frontend)
+    origins = [
+        "http://localhost:5173",
+        "http://127.0.0.1:5173",
+    ]
+
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=origins,
+        allow_credentials=True,
+        allow_methods=["*"],  # Pozwala na wszystkie metody: GET, POST, PATCH, DELETE
+        allow_headers=["*"],  # Pozwala na wszystkie nagłówki
     )
 
     app.include_router(api_router)
