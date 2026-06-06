@@ -1,7 +1,18 @@
 version: '3.8'
 
 services:
-  # Warstwa aplikacji (Backend)
+  # Warstwa interfejsu użytkownika (React + Nginx)
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: cviewer_frontend
+    ports:
+      - "80:80"  # Frontend będzie dostępny pod adresem http://localhost (bez portu)
+    depends_on:
+      - api
+
+  # Warstwa aplikacji (FastAPI Backend)
   api:
     build: .
     container_name: cviewer_api
@@ -15,7 +26,7 @@ services:
     command: uvicorn src.main:app --host 0.0.0.0 --port 8000 --reload
     depends_on:
       db:
-        condition: service_healthy  # <--- Czeka na pozytywny wynik healthchecka z bazy
+        condition: service_healthy
 
   # Warstwa bazy danych (PostgreSQL)
   db:
@@ -30,7 +41,7 @@ services:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
-    healthcheck: # <--- Narzędzie pingujące bazę danych
+    healthcheck:
       test: ["CMD-SHELL", "pg_isready -U cviewer_user -d cviewer_db"]
       interval: 5s
       timeout: 5s
